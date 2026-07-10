@@ -50,7 +50,7 @@ Rules:
 - Frame header value is normalized into the frame identifier: lowercased, whitespace collapsed to `-`, and any character outside `a-z0-9-_` stripped. `# Frame One!` becomes `frame-one`.
 - Inside a frame, each `## ` starts a new heading/body entry.
 - An optional `### ` line sets that entry's subheading and also splits the body at that point, the same as a `---` line — text before it and text after it become separate body blocks. Body collection then continues past it until the next `## ` or `# `.
-- A line containing only `---` splits the current entry's body into separate body blocks, each written to its own `Body N` layer. Blank blocks (nothing between two split points, or a body that is only whitespace) are dropped rather than creating an empty layer.
+- A line containing only `---` splits the current entry's body into separate body blocks, each written to its own `body` text layer. Blank blocks (nothing between two split points, or a body that is only whitespace) are dropped rather than creating an empty layer.
 
 ### Frame matching
 
@@ -64,11 +64,13 @@ A frame block from the input is matched to the first page frame whose id equals 
 
 ### Text layer matching
 
-For each entry, the plugin looks for a child text layer named (case-insensitively) `heading`/`heading 1`/`Heading`/`Heading 1` for the first heading, `heading 2`/`Heading 2` for the second, and so on (same pattern for `subheading` and `body`). A frame's own direct text children are always preferred over text nested inside child containers; if several children share the exact same candidate name, which one wins is unspecified. `Body N` layers found on the frame are always matched up by the `N` in their name, so existing body layers are written in ascending order (`Body 1`, then `Body 2`, ...) regardless of their stacking order in the frame. Missing layers are created only if "Create missing content containers" is checked — except a frame the plugin just created always gets its content, regardless of that checkbox.
+For each entry, the plugin looks for a child text layer named (case-insensitively) `heading`/`heading 1`/`Heading`/`Heading 1` for the first heading, `heading 2`/`Heading 2` for the second, and so on (same pattern for `subheading`). A frame's own direct text children are always preferred over text nested inside child containers; if several children share the exact same candidate name, which one wins is unspecified. Missing layers are created only if "Create missing content containers" is checked — except a frame the plugin just created always gets its content, regardless of that checkbox.
 
-### Body numbering across `---` and `### `
+Body layers work differently: every text layer named `body` (case-insensitive, no number) is collected and treated as one ordered list, ordered by frame layer order — the topmost layer in the frame (frontmost in the Layers panel) is first, then the next one down, and so on. New body layers created by the plugin are always named plain `body`; arrange existing `body` layers in the Layers panel in the order you want blocks written to them.
 
-Body block numbering is continuous across the whole frame, not per heading. If entry 1's body contains one split point (two blocks) and entry 2's body has none, the layers are `Body 1`/`Body 2` for entry 1 and `Body 3` for entry 2 — not `Body 1`/`Body 1` restarted per entry. If an existing frame isn't allowed to grow content and the input has more body blocks than existing `Body N` layers, the extra blocks are discarded (reported in the refresh summary).
+### Body blocks across `---` and `### `
+
+Body block ordering is continuous across the whole frame, not per heading — if entry 1's body has one split point (two blocks) and entry 2's has none, entry 1 fills the first two `body` layers (by layer order) and entry 2 fills the third, not a layer "restarted" per entry. If an existing frame isn't allowed to grow content and the input has more body blocks than existing `body` layers, the extra blocks are discarded (reported in the refresh summary).
 
 ## Development
 

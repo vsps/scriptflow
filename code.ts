@@ -451,27 +451,16 @@ function findTextChildByCandidateNames(frame: FrameNode, candidateNames: string[
 }
 
 function collectTextNodesByKind(root: FrameNode, kind: TextKind): TextNode[] {
-  return collectTextNodes(root)
-    .filter((node) => {
-      const name = node.name.toLowerCase().trim();
-      if (name === kind) {
-        return true;
-      }
-      return new RegExp(`^${kind}\\s+\\d+$`).test(name);
-    })
-    // collectTextNodes walks children topmost-first, which has nothing to do
-    // with the N in "body N"; re-sort by that suffix so position i always
-    // means "body i", not "whichever body layer happens to sit on top".
-    .sort((a, b) => textChildPosition(a, kind) - textChildPosition(b, kind));
-}
-
-function textChildPosition(node: TextNode, kind: TextKind): number {
-  const name = node.name.toLowerCase().trim();
-  if (name === kind) {
-    return 1;
-  }
-  const match = name.match(new RegExp(`^${kind}\\s+(\\d+)$`));
-  return match ? parseInt(match[1], 10) : Number.MAX_SAFE_INTEGER;
+  // Order follows collectTextNodes (frame layer stacking order, topmost
+  // first) rather than any number in the layer's name — body layers are
+  // all named plain "body", so stacking order is the only source of order.
+  return collectTextNodes(root).filter((node) => {
+    const name = node.name.toLowerCase().trim();
+    if (name === kind) {
+      return true;
+    }
+    return new RegExp(`^${kind}\\s+\\d+$`).test(name);
+  });
 }
 
 function collectTextNodes(root: SceneNode): TextNode[] {
@@ -501,6 +490,12 @@ function collectTextNodes(root: SceneNode): TextNode[] {
 }
 
 function getCandidateChildNames(kind: TextKind, position: number): string[] {
+  // Body layers carry no position number — there can be any number of them,
+  // and which one is "first" comes from frame layer order, not from a name.
+  if (kind === 'body') {
+    return ['body', 'Body'];
+  }
+
   if (position === 1) {
     return [
       kind,
@@ -517,6 +512,9 @@ function getCandidateChildNames(kind: TextKind, position: number): string[] {
 }
 
 function defaultChildName(kind: TextKind, position: number): string {
+  if (kind === 'body') {
+    return 'body';
+  }
   if (position === 1) {
     return kind;
   }

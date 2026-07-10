@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Script Flow</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #e9e9e9;
+        --surface: #ffffff;
+        --ink: #1a1917;
+        --muted: #716b64;
+        --accent: #005f73;
+        --accent-strong: #0a9396;
+        --border: #d8d3cb;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #e9e9e9;
+          --surface: #25211d;
+          --ink: #f1ede7;
+          --muted: #c6bdb2;
+          --accent: #7fd4dd;
+          --accent-strong: #9ae3cc;
+          --border: #3f372f;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", "Aptos", sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      .wrap {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        padding: 16px;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        gap: 12px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 16px;
+      }
+
+      p {
+        margin: 6px 0 0;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 360px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--surface);
+        color: var(--ink);
+        padding: 12px;
+        line-height: 1.45;
+        resize: vertical;
+        font-family: "Consolas", "Cascadia Mono", monospace;
+        font-size: 12px;
+      }
+
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      button {
+        border: none;
+        border-radius: 999px;
+        padding: 9px 16px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 150ms ease, filter 150ms ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+        filter: brightness(1.05);
+      }
+
+      #refresh {
+        background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+        color: #fff;
+      }
+
+      #close {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--ink);
+      }
+
+      #status {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .ok {
+        color: #2a7f36;
+      }
+
+      .err {
+        color: #ad2e2e;
+      }
+
+      .resize-handle {
+        position: absolute;
+        right: 8px;
+        bottom: 8px;
+        width: 18px;
+        height: 18px;
+        border-right: 2px solid var(--border);
+        border-bottom: 2px solid var(--border);
+        border-bottom-right-radius: 4px;
+        cursor: nwse-resize;
+        opacity: 0.85;
+        user-select: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Script Flow Refresh</h1>
+        <p>
+          Format: "# frame-id", then one or more "## heading" blocks followed by body text lines.
+        </p>
+      </header>
+
+      <textarea id="input" spellcheck="false"># frame-1
+    ## Welcome to the forest
+    The path splits in two.
+    ---
+    AAAA.
+    ---
+    BBBB.
+    ---
+    XXXXX.
+    ---
+    YYY.
+    ---
+    ZZZZ.
+
+
+    # frame-2
+    ## Left path
+    You hear water nearby.
+
+    # frame-3
+    ## Left path
+    You hear water nearby.
+
+    # frame-4
+    ## Left path
+    You hear water nearby.</textarea>
+
+      <div class="actions">
+        <button id="refresh" type="button">Refresh Frames</button>
+        <button id="browse" type="button">Browse...</button>
+        <input id="file-input" type="file" accept=".md,text/markdown" hidden />
+        <button id="close" type="button">Close</button>
+        <label class="toggle">
+          <input id="create-missing" type="checkbox" />
+          Create missing top-level frames
+        </label>
+        <label class="toggle">
+          <input id="create-missing-content" type="checkbox" />
+          Create missing content containers
+        </label>
+        <span id="status">Ready.</span>
+      </div>
+
+      <div id="resize-handle" class="resize-handle" title="Drag to resize"></div>
+    </div>
+
+    <script>
+      const input = document.getElementById('input');
+      const refresh = document.getElementById('refresh');
+      const closeBtn = document.getElementById('close');
+      const status = document.getElementById('status');
+      const createMissing = document.getElementById('create-missing');
+      const createMissingContent = document.getElementById('create-missing-content');
+      const browseBtn = document.getElementById('browse');
+      const fileInput = document.getElementById('file-input');
+      const resizeHandle = document.getElementById('resize-handle');
+
+      let resizeStart = null;
+
+      function setStatus(message, klass) {
+        status.textContent = message;
+        status.className = klass || '';
+      }
+
+      function postResize(width, height) {
+        parent.postMessage(
+          {
+            pluginMessage: {
+              type: 'resize-ui',
+              width,
+              height,
+            },
+          },
+          '*'
+        );
+      }
+
+      refresh.addEventListener('click', () => {
+        setStatus('Refreshing...', '');
+        parent.postMessage(
+          {
+            pluginMessage: {
+              type: 'refresh',
+              input: input.value,
+              createMissingFrames: Boolean(createMissing.checked),
+              createMissingContent: Boolean(createMissingContent.checked),
+            },
+          },
+          '*'
+        );
+      });
+
+      browseBtn.addEventListener('click', () => {
+        fileInput.click();
+      });
+
+      fileInput.addEventListener('change', () => {
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) {
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+          input.value = String(reader.result ?? '');
+          setStatus(`Loaded ${file.name}.`, '');
+        };
+        reader.onerror = () => {
+          setStatus(`Failed to read ${file.name}.`, 'err');
+        };
+        reader.readAsText(file);
+        fileInput.value = '';
+      });
+
+      closeBtn.addEventListener('click', () => {
+        parent.postMessage(
+          {
+            pluginMessage: {
+              type: 'close',
+            },
+          },
+          '*'
+        );
+      });
+
+      resizeHandle.addEventListener('mousedown', (event) => {
+        event.preventDefault();
+        resizeStart = {
+          x: event.clientX,
+          y: event.clientY,
+          width: document.documentElement.clientWidth,
+          height: document.documentElement.clientHeight,
+        };
+      });
+
+      window.addEventListener('mousemove', (event) => {
+        if (!resizeStart) {
+          return;
+        }
+
+        const nextWidth = Math.max(360, resizeStart.width + (event.clientX - resizeStart.x));
+        const nextHeight = Math.max(320, resizeStart.height + (event.clientY - resizeStart.y));
+        postResize(nextWidth, nextHeight);
+      });
+
+      window.addEventListener('mouseup', () => {
+        resizeStart = null;
+      });
+
+      window.onmessage = (event) => {
+        const message = event.data.pluginMessage;
+        if (!message || message.type !== 'refresh-result') {
+          return;
+        }
+
+        setStatus(message.message, message.ok ? 'ok' : 'err');
+      };
+    </script>
+  </body>
+</html>

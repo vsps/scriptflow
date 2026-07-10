@@ -18,16 +18,30 @@ Supported editors: Figma Design and Figma Slides.
 Use one section per activity:
 
 ```md
-# frame-1
+# Frame 1
 ## Welcome to the forest
+
 The path splits in two.
+---
+Left.
+This path is right.
+---
+Right.
+this path is wrong.
 
-## Choice prompt
-Go left or go right.
-
-# frame-2
+# Frame 2
 ## Left path
+
 You hear water nearby.
+
+# Frame 3
+## Right path
+
+You hear water nearby but it's not as good.
+
+### you chose poorly
+
+you go back to the start.
 ```
 
 Rules:

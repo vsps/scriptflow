@@ -49,9 +49,8 @@ Rules:
 - Frame header must start with `# ` (not `## `).
 - Frame header value is normalized into the frame identifier: lowercased, whitespace collapsed to `-`, and any character outside `a-z0-9-_` stripped. `# Frame One!` becomes `frame-one`.
 - Inside a frame, each `## ` starts a new heading/body entry.
-- An optional `### ` line right after `## ` sets that entry's subheading.
-- An entry's body is every line after it until the next `### `, `## `, or `# `.
-- A line containing only `---` splits the current entry's body into separate body blocks, each written to its own `Body N` layer. Blank blocks (nothing between two `---` lines, or a body that is only whitespace) are dropped rather than creating an empty layer.
+- An optional `### ` line sets that entry's subheading and also splits the body at that point, the same as a `---` line — text before it and text after it become separate body blocks. Body collection then continues past it until the next `## ` or `# `.
+- A line containing only `---` splits the current entry's body into separate body blocks, each written to its own `Body N` layer. Blank blocks (nothing between two split points, or a body that is only whitespace) are dropped rather than creating an empty layer.
 
 ### Frame matching
 
@@ -65,11 +64,11 @@ A frame block from the input is matched to the first page frame whose id equals 
 
 ### Text layer matching
 
-For each entry, the plugin looks for a child text layer named (case-insensitively) `heading`/`heading 1`/`Heading`/`Heading 1` for the first heading, `heading 2`/`Heading 2` for the second, and so on (same pattern for `subheading` and `body`). A frame's own direct text children are always preferred over text nested inside child containers; if several children share a candidate name, the first one found wins and the match order between siblings is otherwise unspecified. Missing layers are created only if "Create missing content containers" is checked — except a frame the plugin just created always gets its content, regardless of that checkbox.
+For each entry, the plugin looks for a child text layer named (case-insensitively) `heading`/`heading 1`/`Heading`/`Heading 1` for the first heading, `heading 2`/`Heading 2` for the second, and so on (same pattern for `subheading` and `body`). A frame's own direct text children are always preferred over text nested inside child containers; if several children share the exact same candidate name, which one wins is unspecified. `Body N` layers found on the frame are always matched up by the `N` in their name, so existing body layers are written in ascending order (`Body 1`, then `Body 2`, ...) regardless of their stacking order in the frame. Missing layers are created only if "Create missing content containers" is checked — except a frame the plugin just created always gets its content, regardless of that checkbox.
 
-### Body numbering across `---`
+### Body numbering across `---` and `### `
 
-Body block numbering is continuous across the whole frame, not per heading. If entry 1's body contains one `---` (two blocks) and entry 2's body has none, the layers are `Body 1`/`Body 2` for entry 1 and `Body 3` for entry 2 — not `Body 1`/`Body 1` restarted per entry. If an existing frame isn't allowed to grow content and the input has more body blocks than existing `Body N` layers, the extra blocks are discarded (reported in the refresh summary).
+Body block numbering is continuous across the whole frame, not per heading. If entry 1's body contains one split point (two blocks) and entry 2's body has none, the layers are `Body 1`/`Body 2` for entry 1 and `Body 3` for entry 2 — not `Body 1`/`Body 1` restarted per entry. If an existing frame isn't allowed to grow content and the input has more body blocks than existing `Body N` layers, the extra blocks are discarded (reported in the refresh summary).
 
 ## Development
 

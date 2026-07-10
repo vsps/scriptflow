@@ -173,6 +173,9 @@ function parseFrames(rawInput: string): FrameSpec[] {
 
     if (compact.startsWith('### ')) {
       currentSubheading = compact.slice(4).trim();
+      // Splits the body here too, same as a literal "---" line, so text
+      // before and after the subheading land in separate body blocks.
+      currentBodyLines.push('---');
       continue;
     }
 
@@ -448,13 +451,27 @@ function findTextChildByCandidateNames(frame: FrameNode, candidateNames: string[
 }
 
 function collectTextNodesByKind(root: FrameNode, kind: TextKind): TextNode[] {
-  return collectTextNodes(root).filter((node) => {
-    const name = node.name.toLowerCase().trim();
-    if (name === kind) {
-      return true;
-    }
-    return new RegExp(`^${kind}\\s+\\d+$`).test(name);
-  });
+  return collectTextNodes(root)
+    .filter((node) => {
+      const name = node.name.toLowerCase().trim();
+      if (name === kind) {
+        return true;
+      }
+      return new RegExp(`^${kind}\\s+\\d+$`).test(name);
+    })
+    // collectTextNodes walks children topmost-first, which has nothing to do
+    // with the N in "body N"; re-sort by that suffix so position i always
+    // means "body i", not "whichever body layer happens to sit on top".
+    .sort((a, b) => textChildPosition(a, kind) - textChildPosition(b, kind));
+}
+
+function textChildPosition(node: TextNode, kind: TextKind): number {
+  const name = node.name.toLowerCase().trim();
+  if (name === kind) {
+    return 1;
+  }
+  const match = name.match(new RegExp(`^${kind}\\s+(\\d+)$`));
+  return match ? parseInt(match[1], 10) : Number.MAX_SAFE_INTEGER;
 }
 
 function collectTextNodes(root: SceneNode): TextNode[] {

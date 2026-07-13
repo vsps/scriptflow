@@ -1,40 +1,27 @@
 # Frame 1
 
-## Welcome to the forest
+## The forrest
+
+### Welcome to the forest
 
 The path splits in two.
----
-AAAA.
----
-BBBB.
----
-XXXXX.
----
-YYY.
----
-ZZZZ.
-
 
 # Frame 2
 
 ## Left path
 
-You hear water nearby.
-
-
-
-### shoe
+You hear water near by.
+---
+You see water near by.
+---
+You are in the water.
 
 # Frame 3
 
-## Left path
+## Right path
 
-You hear water nearby.
+### you chose poorly
 
+You hear water nearby but it's not as good.
 
-
-# frame-4
-
-## Left path
-
-You hear water nearby.
+go back to the start.
